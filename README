@@ -9,12 +9,11 @@ Released under MIT License
 
 Usage:
 
-         $('#id-selector').monthpicker([options]);
-
- [options] accepts following JSON properties:
-  minYear     - the minimum year the selectbox should show
-  maxYear     - the maximum year the selectbox should show
-  lang        - language in which all labels should be generated
-  month       - a map of month labels (overrides the lang parameter if set)
-  f.e. german months
-  month : ['January','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+ * $('#id-selector').monthpicker([options]);
+ *
+ * [options] accepts following JSON properties:
+ *  minYear     - the minimum year the selectbox should show (default: 1980)
+ *  maxYear     - the maximum year the selectbox should show (default: current year)
+ *  months       - a map of month labels
+ *  selectedDate - selected date (js date object, default: current date)
+ *  onChange - change handler function
