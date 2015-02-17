@@ -12,12 +12,12 @@
  * $('#id-selector').monthpicker([options]);
  *
  * [options] accepts following JSON properties:
- *  minYear     - the minimum year the selectbox should show
- *  maxYear     - the maximum year the selectbox should show
- *  lang        - language in which all labels should be generated
- *  month       - a map of month labels (overrides the lang parameter if set)
- *  f.e. german months
- *   month : ['January','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+ *  minYear     - the minimum year the selectbox should show (default: 1980)
+ *  maxYear     - the maximum year the selectbox should show (default: current year)
+ *  months       - a map of month labels
+ *  selectedDate - selected date (js date object, default: current date)
+ *  onChange - change handler function
+ *
  * </usage>
  *
  *
@@ -26,71 +26,76 @@
  * @date May 26, 2014
  *
  */
-(function ($) {
-    $.fn.monthpicker = function (options, language) {
+(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(['jquery'], factory);
+    } else {
+        // Browser globals
+        factory(jQuery);
+    }
+}(function ($) {
+    $.fn.monthpicker = function (options) {
+        $(this).each(function() {
+            var $input = $(this),
+                currentDate = new Date(),
+                value = parseInt($input.val(), 10),
+                selectedDate = value ? new Date(value) : currentDate,
+                defaults = {
+                    minYear: 1980,
+                    maxYear: currentDate.getUTCFullYear(),
+                    selectedDate: selectedDate,
+                    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+                },
+                $yearElement = $('<select class="ui-monthpicker-yearpick"></select>'),
+                $monthElement = $('<select class="ui-monthpicker-monthpick"></select>'),
+                currentYear = selectedDate.getUTCFullYear(),
+                currentMonth = selectedDate.getUTCMonth(),
+                params = $.extend(true, {}, defaults, options),
+                createTimestamp = function () {
+                    $input
+                        .attr('value', Date.UTC($yearElement.val(), $monthElement.val(), 1))
+                        .trigger('change.monthpicker');
+                };
 
-        var month  = {
-            "de" : {
-                "month" :  ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember' ]
-            },
-            "at" : {
-                "month" :  ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember' ]
-            },
-            "es" : {
-                "month" : ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-            },
-            "fr" : {
-                "month" : ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
-            },
-            "hu" : {
-                "month" : ['január', 'február', 'március', 'április', 'május', 'június', 'július', 'augusztus', 'szeptember', 'október', 'november', 'december']
-            },
-            "it" : {
-                "month" : ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
-            },
-            "nl" : {
-                "month" : ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december']
+            $input.hide();
+
+            if (params.minYear > params.maxYear) {
+                var tempYear = params.maxYear;
+
+                params.maxYear = params.minYear;
+                params.minYear = tempYear;
             }
-        }, defaults = {
-            minYear: "1980",
-            maxYear: "2010",
-            month: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-        }, i, yearbox, monthbox, obj = $(this);
 
-        if (!$.isEmptyObject(options)) {
-            defaults = $.extend(defaults, month[options.lang]);
-        }
-
-        options = $.extend(defaults, options);
-
-        obj.hide();
-
-        if (options.minYear > options.maxYear) {
-            for (i = options.minYear; i >= options.maxYear; i--) {
-                yearbox += '<option value="' + i + '">' + i + '</option>';
+            for (var i = params.minYear; i <= params.maxYear; i++) {
+                $('<option></option>')
+                    .val(i)
+                    .html(i)
+                    .appendTo($yearElement);
             }
-        } else {
-            for (i = options.minYear; i <= options.maxYear; i++) {
-                yearbox += '<option value="' + i + '">' + i + '</option>';
-            }
-        }
 
-        $.map(options.month, function (n, i) {
-            monthbox += '<option value="' + i + '">' + n + '</option>';
+            for (var i = 0, l = params.months.length; i < l; i++) {
+                $('<option></option>')
+                    .val(i)
+                    .html(params.months[i])
+                    .appendTo($monthElement);
+            }
+
+            $yearElement
+                .val(currentYear)
+                .insertAfter($input);
+            $monthElement
+                .val(currentMonth)
+                .insertBefore($input);
+
+            if (typeof params.onChange === 'function') {
+                $input
+                    .unbind('.monthpicker')
+                    .bind('change.monthpicker', params.onChange);
+            }
+
+            $yearElement.change(createTimestamp);
+            $monthElement.change(createTimestamp);
         });
-
-
-        var yearElement = $('<select class="yearpick">' + yearbox + '</select>'),
-            monthElement = $('<select class="monthpick">' + monthbox + '</select>');
-
-        monthElement.insertBefore($(this));
-        yearElement.insertAfter($(this));
-
-        var createTimestamp = function () {
-            obj.attr('value', Math.round(Date.UTC(yearElement.val(), monthElement.val(), 1)) / 1000);
-        }
-
-        yearElement.change(createTimestamp);
-        monthElement.change(createTimestamp);
     };
-})(jQuery);
+}));
